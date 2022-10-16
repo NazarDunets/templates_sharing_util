@@ -1,17 +1,49 @@
-use std::{fs, io, process::Command};
+use std::io::{self};
+use std::{env, fs, process::Command};
 
 const GOOGLE_DIR_APPEND_PATH: &str = "/Library/Application Support/Google";
 const FILE_TEMPLATES_APPEND_PATH: &str = "/fileTemplates";
+// const OPTIONS_APPEND_PATH: &str = "/options";
 const AS_INSTALLATION_FOLDER_PREFIX: &str = "AndroidStudio";
-
-const SHARED_TEMPLATES_PATH: &str = "SharedTemplates";
+const SHARED_TEMPLATES_XML: &str = "shared_templates.xml";
+// const TEMPLATE_TAG: &str = "template";
+// const TEMPLATE_NAME_ATTR: &str = "name";
 
 fn main() {
-    // Process shared templates
-    let shared_templates_folder =
-        fs::read_dir(SHARED_TEMPLATES_PATH).expect("No \"SharedTemplates\" folder found");
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 2 {
+        panic!("Invalid arguments")
+    }
 
-    let shared_templates: Vec<String> = shared_templates_folder
+    let shared_tp_path = args.get(1).unwrap().as_str();
+
+    let shared_templates = load_templates(shared_tp_path);
+    let as_path = get_as_installation_path();
+    let as_templates_path = get_target_templates_path(&as_path);
+
+    copy_templates(&as_templates_path, shared_templates);
+
+    println!("Process complete! Restart AS for changes to take effect.")
+}
+
+fn copy_templates(as_templates_path: &str, shared_templates: Vec<String>) {
+    for template in shared_templates {
+        let mut target_path = String::from(as_templates_path);
+        target_path.push('/');
+        target_path.push_str(name_from_path(template.as_str()));
+
+        Command::new("cp")
+            .arg(&template)
+            .arg(target_path)
+            .spawn()
+            .expect(format!("Failed to copy a template {}", &template).as_str());
+    }
+}
+
+fn load_templates(destination: &str) -> Vec<String> {
+    let shared_templates_folder = fs::read_dir(destination).expect("No templates folder found");
+
+    shared_templates_folder
         .filter(|v| v.is_ok())
         .map(|v| {
             v.unwrap()
@@ -21,9 +53,11 @@ fn main() {
         })
         .filter(|v| v.is_some())
         .map(|v| v.unwrap())
-        .collect();
+        .filter(|v| v.as_str() != SHARED_TEMPLATES_XML)
+        .collect()
+}
 
-    // Get AS installation folder
+fn get_as_installation_path() -> String {
     let mut templates_path = String::new();
 
     match home::home_dir() {
@@ -88,8 +122,11 @@ fn main() {
         }
     }
 
-    // Check for fileTemplates folder and create one if absent
-    let mut as_templates_path = as_path.clone();
+    as_path
+}
+
+fn get_target_templates_path(as_path: &str) -> String {
+    let mut as_templates_path = String::from(as_path);
     as_templates_path.push_str(FILE_TEMPLATES_APPEND_PATH);
 
     if fs::read_dir(as_templates_path.as_str()).is_err() {
@@ -100,20 +137,7 @@ fn main() {
             .expect("Failed to open/create \"fileTemplates\" folder");
     }
 
-    // Copy templates
-    for template in shared_templates {
-        let mut target_path = as_templates_path.clone();
-        target_path.push('/');
-        target_path.push_str(name_from_path(template.as_str()));
-
-        Command::new("cp")
-            .arg(&template)
-            .arg(target_path)
-            .spawn()
-            .expect(format!("Failed to copy a template {}", &template).as_str());
-    }
-
-    println!("Process complete! Restart AS for changes to take effect.")
+    as_templates_path
 }
 
 fn name_from_path(src: &str) -> &str {
