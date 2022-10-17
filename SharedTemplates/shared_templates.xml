@@ -1,0 +1,4 @@
+<shared_templates>
+    <template name="TestTemplate1.kt" file-name="${Name}Uno" reformat="true" live-template-enabled="false"/>
+    <template name="TestTemplate2.kt" file-name="${Name}Dos" reformat="true" live-template-enabled="false"/>
+</shared_templates>

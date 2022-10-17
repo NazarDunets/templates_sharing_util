@@ -7,5 +7,4 @@ edition = "2021"
 
 [dependencies]
 home = "0.5.4"
-# xml-rs = "0.8.4"
-# regex = "1"
+regex = "1"
