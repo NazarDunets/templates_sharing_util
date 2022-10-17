@@ -159,7 +159,7 @@ fn load_templates(destination: &str) -> Vec<String> {
         })
         .filter(|v| v.is_some())
         .map(|v| v.unwrap())
-        .filter(|v| v.as_str() != SHARED_TEMPLATES_XML)
+        .filter(|v| !v.contains(SHARED_TEMPLATES_XML))
         .collect()
 }
 
